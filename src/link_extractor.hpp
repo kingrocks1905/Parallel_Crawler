@@ -1,10 +1,9 @@
 #pragma once
 
-// HTML link extractor and URL normalizer
-//
-// Given raw HTML and a base URL, extracts all <a href="..."> links
-// and normalizes them (resolve relative paths, remove fragments, etc.)
-//
-// Key operations:
-//   extract_links(html, base_url) → std::vector<std::string>
-//
+#include <string>
+#include <vector>
+
+// Given raw HTML and the URL it came from, this function returns all absolute URLs
+
+std::vector<std::string> extract_links(const std::string& html,
+                                       const std::string& base_url);

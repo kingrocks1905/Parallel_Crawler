@@ -23,7 +23,7 @@ target_link_libraries(crawler PRIVATE CURL::libcurl Threads::Threads)
 # Test executables — one per file (each defines its own main())
 add_executable(test_safe_queue   tests/test_safe_queue.cpp)
 add_executable(test_striped_hash tests/test_striped_hash.cpp)
-add_executable(test_link_extractor tests/test_link_extractor.cpp)
+add_executable(test_link_extractor tests/test_link_extractor.cpp src/link_extractor.cpp)
 
 foreach(t test_safe_queue test_striped_hash test_link_extractor)
     target_include_directories(${t} PRIVATE src)
@@ -37,3 +37,12 @@ add_executable(benchmarks
 
 target_include_directories(benchmarks PRIVATE src)
 target_link_libraries(benchmarks PRIVATE CURL::libcurl Threads::Threads)
+
+# Smoke test: fetch one page and print extracted links
+add_executable(fetch_test
+    tools/fetch_test.cpp
+    src/http_fetcher.cpp
+    src/link_extractor.cpp
+)
+target_include_directories(fetch_test PRIVATE src)
+target_link_libraries(fetch_test PRIVATE CURL::libcurl Threads::Threads)
