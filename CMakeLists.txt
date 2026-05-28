@@ -20,15 +20,15 @@ add_executable(crawler
 target_include_directories(crawler PRIVATE src)
 target_link_libraries(crawler PRIVATE CURL::libcurl Threads::Threads)
 
-# Tests executable
-add_executable(tests
-    tests/test_safe_queue.cpp
-    tests/test_striped_hash.cpp
-    tests/test_link_extractor.cpp
-)
+# Test executables — one per file (each defines its own main())
+add_executable(test_safe_queue   tests/test_safe_queue.cpp)
+add_executable(test_striped_hash tests/test_striped_hash.cpp)
+add_executable(test_link_extractor tests/test_link_extractor.cpp)
 
-target_include_directories(tests PRIVATE src)
-target_link_libraries(tests PRIVATE CURL::libcurl Threads::Threads)
+foreach(t test_safe_queue test_striped_hash test_link_extractor)
+    target_include_directories(${t} PRIVATE src)
+    target_link_libraries(${t} PRIVATE CURL::libcurl Threads::Threads)
+endforeach()
 
 # Benchmark executable
 add_executable(benchmarks
