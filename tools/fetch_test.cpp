@@ -1,5 +1,5 @@
-// Smoke test: fetch one Wikipedia page, extract its links, apply a domain filter.
-// Run: ./build/fetch_test [url]
+// Fetches a single page and prints extracted links after domain filtering.
+// Usage: ./fetch_test [url]   (defaults to Concurrent_computing on Wikipedia)
 
 #include "http_fetcher.hpp"
 #include "link_extractor.hpp"
@@ -13,9 +13,6 @@ int main(int argc, char* argv[]) {
         ? argv[1]
         : "https://en.wikipedia.org/wiki/Concurrent_computing";
 
-    // 1. Fetch the page -------------------------------------------------------
-    // HttpFetcher wraps a single libcurl handle.  Each worker thread in the
-    // real crawler will own one of these (they're not thread-safe to share).
     HttpFetcher fetcher;
     if (!fetcher.is_ready()) {
         std::cerr << "curl init failed\n";
@@ -33,25 +30,18 @@ int main(int argc, char* argv[]) {
     std::cout << "Got " << html.size() << " bytes  (HTTP "
               << fetcher.last_status_code() << ")\n\n";
 
-    // 2. Extract links --------------------------------------------------------
-    // extract_links scans the HTML for <a href="..."> attributes and resolves
-    // every href to an absolute URL using `url` as the base.
     auto links = extract_links(html, url);
     std::cout << "Total links found: " << links.size() << "\n\n";
 
-    // 3. Apply a domain filter ------------------------------------------------
-    // domain_filter returns a predicate that keeps only URLs whose host matches.
-    // For en.wikipedia.org this drops external links (other sites, sister wikis, etc.)
-    auto keep = domain_filter("en.wikipedia.org");
+    // keep only links on the same domain
+    auto keep = domain_filter(url_host(url));
 
     std::vector<std::string> filtered;
     for (const auto& link : links)
         if (keep(link)) filtered.push_back(link);
 
-    std::cout << "After domain filter (en.wikipedia.org): "
-              << filtered.size() << " links\n\n";
+    std::cout << "After domain filter: " << filtered.size() << " links\n\n";
 
-    // Print first 20 so we can sanity-check the output
     int show = std::min<int>(20, filtered.size());
     for (int i = 0; i < show; ++i)
         std::cout << "  " << filtered[i] << "\n";
