@@ -1,13 +1,12 @@
 #pragma once
 
-// Output / index generation
-//
-// After crawling completes, we dump the results to CSV and prints the  stats.
-//
-// Output format would be like this:
-//   url, depth, in_links, parent_url
-//
-// Stats:
-//   total pages, total time, pages/sec, time breakdown
-//
-// 
+#include "striped_hash_set.hpp"
+
+#include <chrono>
+#include <string>
+
+// Writes all crawled pages to a CSV file (url, depth, in_links, parent_url)
+// and prints a summary to stdout.
+void write_output(const StripedHashSet& visited,
+                  const std::string&    filename,
+                  std::chrono::duration<double> elapsed);
