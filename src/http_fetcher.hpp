@@ -4,14 +4,8 @@
 
 #include <cstddef>
 #include <string>
-// HTTP page fetcher using libcurl
-//
-// Each worker thread creates its own instance (thread-local curl handle).
-// Handles: HTTPS, redirects, timeouts, User-Agent.
-//
-// Key operations:
-//   fetch(url) → std::string (HTML body)
-//
+// wraps a libcurl handle for downloading pages
+// each worker thread should have its own instance since curl handles aren't thread-safe
 
 
 class HttpFetcher {
@@ -22,8 +16,7 @@ public:
     HttpFetcher(const HttpFetcher& other) = delete;
     HttpFetcher& operator=(const HttpFetcher& other) = delete;
 
-    // Input: a URL starting with http:// or https://
-    // Output: the HTML/page body, or an empty string if the request failed.
+    // returns the page body, or empty string on failure
     std::string fetch(const std::string& url);
 
     long last_status_code() const;

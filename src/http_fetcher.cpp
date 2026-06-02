@@ -2,7 +2,7 @@
 
 namespace {
 
-// libcurl global setup. The local static variable makes this run only once.
+// runs curl_global_init once (static local trick)
 class CurlGlobalSetup {
 public:
     CurlGlobalSetup() {
@@ -42,7 +42,7 @@ HttpFetcher::HttpFetcher()
         return;
     }
 
-    // Options that stay the same for all requests made by this object.
+    // these options stay the same across all requests
     curl_easy_setopt(curl_, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl_, CURLOPT_MAXREDIRS, 5L);
     curl_easy_setopt(curl_, CURLOPT_CONNECTTIMEOUT, 5L);
@@ -75,7 +75,7 @@ std::string HttpFetcher::fetch(const std::string& url) {
         return body;
     }
 
-    // Options that change for each request.
+    // per-request options
     curl_easy_setopt(curl_, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl_, CURLOPT_WRITEDATA, &body);
     curl_easy_setopt(curl_, CURLOPT_ERRORBUFFER, error_buffer_);

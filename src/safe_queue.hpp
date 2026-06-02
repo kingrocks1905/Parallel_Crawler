@@ -9,13 +9,12 @@
 
 struct CrawlTask {
     std::string url;
-    int         depth;        // BFS depth from seed
+    int         depth;
     std::string parent_url;
 };
 
-// Thread-safe unbounded FIFO queue for BFS workers.
-// try_pop blocks with a timeout so workers can periodically check for
-// termination (empty queue + no active workers  then the caller calls shutdown()).
+// thread-safe FIFO queue for the crawl frontier
+// workers block on try_pop until something shows up or timeout expires
 class SafeBFSQueue {
 public:
     SafeBFSQueue() : shutdown_flag_(false) {}
@@ -30,11 +29,10 @@ public:
             std::lock_guard<std::mutex> lock(mtx_);
             queue_.push(std::move(task));
         }
-        cv_.notify_one(); // wake one blocked worker
+        cv_.notify_one();
     }
 
-    // Returns true and fills `task` if an item is available within timeout_ms.
-    // Returns false on timeout or after shutdown() with an empty queue.
+    // tries to grab a task within timeout_ms, returns false if nothing came through
     bool try_pop(CrawlTask &task, int timeout_ms) {
         std::unique_lock<std::mutex> lock(mtx_);
 
@@ -60,7 +58,7 @@ public:
         return queue_.size();
     }
 
-    // Wake all blocked try_pop calls so threads can exit cleanly.
+    // unblocks all threads so they can check the termination flag and exit
     void shutdown() {
         {
             std::lock_guard<std::mutex> lock(mtx_);
@@ -78,5 +76,5 @@ private:
     std::queue<CrawlTask>   queue_;
     mutable std::mutex      mtx_;
     std::condition_variable cv_;
-    bool                    shutdown_flag_;
+    bool shutdown_flag_;
 };

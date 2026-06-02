@@ -15,15 +15,21 @@ struct CrawlConfig {
     UrlFilter   filter;        // empty filter means follow every URL
 };
 
-// Statistics collected during one crawl run.
+//  Here are all of the stats collected during one crawl run.
 struct CrawlStats {
-    std::atomic<int> tasks_processed{0};
-    std::atomic<int> pages_fetched{0};
-    std::atomic<int> fetch_errors{0};
-    std::atomic<int> links_extracted{0};
-    std::atomic<int> links_accepted{0};
-    std::atomic<int> new_pages{0};
-    std::atomic<int> duplicate_links{0};
+    std::atomic<int>       tasks_processed{0};
+    std::atomic<int>       pages_fetched{0};
+    std::atomic<int>       fetch_errors{0};
+    std::atomic<int>       links_extracted{0};
+    std::atomic<int>       links_accepted{0};
+    std::atomic<int>       new_pages{0};
+    std::atomic<int>       duplicate_links{0};
+
+    // Per-phase cumulative time across all threads in nanoseconds
+   
+    std::atomic<long long> fetch_ns{0};
+    std::atomic<long long> parse_ns{0};
+    std::atomic<long long> sync_ns{0};
 };
 
 // Runs the crawler and fills 'visited' with discovered pages.

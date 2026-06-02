@@ -5,9 +5,8 @@
 #include <string>
 #include <vector>
 
-// Holds the three pieces of a base URL needed to resolve relative hrefs.
-// For example  "https://example.com/news/today.html" →
-//   scheme = "https", origin = "https://example.com", dir = "https://example.com/news/"
+// cracks a base URL into scheme, origin, and directory for resolving relative hrefs
+// e.g. "https://example.com/news/today.html" -> scheme="https", origin="https://example.com", dir=".../news/"
 struct ParsedBase {
     std::string scheme;
     std::string origin;
@@ -23,7 +22,7 @@ static ParsedBase parse_base(const std::string& base_url) {
 
     p.scheme = base_url.substr(0, sep);
 
-    // origin ends at the first '/' after "://"
+    // origin ends at the first '/' after the scheme
     auto slash = base_url.find('/', sep + 3);
     if (slash == std::string::npos) {
         p.origin = base_url;
@@ -36,28 +35,27 @@ static ParsedBase parse_base(const std::string& base_url) {
     return p;
 }
 
-// Resolves an href against the base URL. Handles five cases:
-//   already absolute, protocol-relative (//), absolute path (/), fragment (#), relative
+// turns a raw href into an absolute URL, handles the 5 common href forms
 static std::string resolve_url(const std::string& href, const ParsedBase& base) {
     
     if (href.empty() || base.origin.empty())
         return "";
 
-    if (href[0] == '#')                                          // same page
+    if (href[0] == '#')                     // same-page anchor
         return "";
     if (href.rfind("http://", 0) == 0 || href.rfind("https://", 0) == 0)
         return href;
-    if (href.rfind("//", 0) == 0)                               // protocol-relative
+    if (href.rfind("//", 0) == 0)            // protocol-relative
         return base.scheme + ':' + href;
-    if (href[0] == '/')                                          // absolute path
+    if (href[0] == '/')                      // absolute path
         return base.origin + href;
 
-    return base.dir + href;                                      // relative path
+    return base.dir + href;                  // relative
 }
 
 std::vector<std::string> extract_links(const std::string& html,
                                        const std::string& base_url) {
-    // Matches href="..." and href='...' (case-insensitive)
+    // matches href="..." and href='...'
     static const std::regex href_re(
         R"re(href\s*=\s*(?:"([^"]*)"|'([^']*)')\s*)re",
         std::regex::icase
@@ -70,12 +68,12 @@ std::vector<std::string> extract_links(const std::string& html,
     for (auto it = std::sregex_iterator(html.begin(), html.end(), href_re);
          it != std::sregex_iterator(); ++it) {
 
-        // group 1 = double-quoted, group 2 = single-quoted
+        // group 1 is double-quoted, group 2 single-quoted
         std::string href = (*it)[1].matched ? (*it)[1].str() : (*it)[2].str();
         std::string url  = resolve_url(href, base);
         if (url.empty()) continue;
 
-        // strip fragment so "page#section" and "page" are the same URL
+        // strip fragment so page#section == page
         auto frag = url.find('#');
         if (frag != std::string::npos)
             url.erase(frag);

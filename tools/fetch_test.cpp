@@ -24,6 +24,7 @@ int main(int argc, char* argv[]) {
 
     if (html.empty()) {
         std::cerr << "Fetch failed: " << fetcher.last_error()
+
                   << " (HTTP " << fetcher.last_status_code() << ")\n";
         return 1;
     }
@@ -43,6 +44,7 @@ int main(int argc, char* argv[]) {
     std::cout << "After domain filter: " << filtered.size() << " links\n\n";
 
     int show = std::min<int>(20, filtered.size());
+    
     for (int i = 0; i < show; ++i)
         std::cout << "  " << filtered[i] << "\n";
     if ((int)filtered.size() > show)

@@ -10,27 +10,11 @@
 #include <string>
 #include <vector>
 
-// Concurrent hash set with lock striping (Herlihy Ch.13)
-// Uses: std::vector<std::mutex> for stripe locks
-//
-// Key operations:
-//   insert_if_absent(url, info)   — atomic check-and-insert, returns true if new
-//   contains(url)                 — check membership
-//   increment_inlinks(url)        — atomically bump in-link counter
-//   get_all()                     — snapshot of all entries for output
-//
-// Design:
-//   - N buckets, each a std::list<PageInfo>
-//   - L locks (L < N), lock[i] protects buckets {i, i+L, i+2L, ...}
-//   - Resize when load factor exceeds threshold (acquire ALL locks)
-//
+// concurrent hash set using lock striping
+// N buckets, L stripe locks — lock[i] covers buckets i, i+L, i+2L, ...
 
-
-// Concurrent hash set used for the crawler's visited URLs.
 class StripedHashSet {
 public:
-    // Input: number of buckets and number of locks.
-    // Output: an empty concurrent hash set.
     StripedHashSet(std::size_t bucket_count = 64, std::size_t stripe_count = 16)
         : buckets_(fixed_bucket_count(bucket_count, stripe_count)),
           locks_(fixed_stripe_count(stripe_count)),
@@ -38,8 +22,7 @@ public:
           bucket_count_(fixed_bucket_count(bucket_count, stripe_count)) {
     }
 
-    // Input: url and its PageInfo.
-    // Output: true if inserted, false if the url was already present.
+    // returns true if url was new and got inserted
     bool insert_if_absent(const std::string& url, const PageInfo& info) {
         std::size_t h = hash_url(url);
         std::size_t stripe = h % locks_.size();
@@ -69,8 +52,6 @@ public:
         return true;
     }
 
-    // Input: url.
-    // Output: true if the url is already in the set.
     bool contains(const std::string& url) const {
         std::size_t h = hash_url(url);
         std::size_t stripe = h % locks_.size();
@@ -86,8 +67,7 @@ public:
         return false;
     }
 
-    // Input: url and output variable.
-    // Output: true if found, and fills result with the stored PageInfo.
+    // fills result if found, returns whether it was there
     bool get(const std::string& url, PageInfo& result) const {
         std::size_t h = hash_url(url);
         std::size_t stripe = h % locks_.size();
@@ -104,8 +84,6 @@ public:
         return false;
     }
 
-    // Input: url.
-    // Output: true if the counter was incremented.
     bool increment_inlinks(const std::string& url) {
         std::size_t h = hash_url(url);
         std::size_t stripe = h % locks_.size();
@@ -122,7 +100,7 @@ public:
         return false;
     }
 
-    // Output: a snapshot of all stored pages.
+    // grabs all stripes to take a consistent snapshot
     std::vector<PageInfo> get_all() const {
         lock_all_stripes();
 
@@ -182,7 +160,7 @@ private:
         return std::hash<std::string>{}(url);
     }
 
-    // Resize is rare. It locks every stripe before replacing the bucket table.
+    // resize is expensive — locks every stripe then rehashes everything
     void resize_if_needed() {
         if (count_.load() <= bucket_count_.load() * MAX_LOAD) {
             return;
